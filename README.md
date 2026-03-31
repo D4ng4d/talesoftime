@@ -20,6 +20,7 @@ Open your terminal and run:
 ```bash
 git clone [https://github.com/](https://github.com/)[YOUR-USERNAME]/talesoftime.git
 cd talesoftime
+```
 
 
 2. Initialise the Database
@@ -27,19 +28,20 @@ This command creates the database skeleton and all 13 tables defined in your sch
 
 ```bash
 python -c "from models.models import init_db; init_db(); print('Database Skeleton Created Successfully!')"
-
+```
 
 3. Seed the Game Data
 Populate your lookup tables and core entities with starting data to make the app functional.
 
 ```bash
 python database/seed.py
-
+```
 4. Launch the Application
 Start the Flask development server to view your project in the browser.
 
 ```bash
 python app.py
+```
 Access the app at: http://127.0.0.1:5000
 
 📝 Core Development Tasks
