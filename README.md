@@ -44,33 +44,73 @@ python app.py
 ```
 Access the app at: http://127.0.0.1:5000
 
-📝 Core Development Tasks
-During this module, you are responsible for implementing the following architectural components:
+# 📝 Core Development Tasks
 
-Phase 1: Database Schema (database/schema.sql)
-Define the relational structure using DDL SQL:
+During this module, you are responsible for designing and implementing the core architectural components of the application. Development is structured into **three distinct phases**, each aligned with industry-standard software engineering principles, including separation of concerns, security, and maintainability.
 
-Lookup Tables: Static reference data for Classes, Species, Alignments, and Regions.
+---
 
-Core Entities: The main data for Characters, Items, and Quests.
+## Phase 1: Database Schema
 
-Join Tables: Managing Many-to-Many relationships like Character Inventories and Quest history.
+**File:** `database/schema.sql`
 
-Phase 2: Connection Logic (models/models.py)
-Configure the bridge between Python and SQLite:
+You will design and implement the relational database structure using **DDL SQL**, ensuring data integrity, normalisation, and long-term scalability.
 
-get_db(): A connection factory that enforces PRAGMA foreign_keys = ON and uses sqlite3.Row for dictionary-style data access.
+### Responsibilities
 
-_SCHEMA: An internal DDL string that allows the application to self-heal and recreate missing tables.
+#### Lookup Tables
 
-Phase 3: Data Repositories (repositories/repositories.py)
-Isolate complex SQL logic from the user interface:
+Static reference tables used to enforce controlled vocabularies and reduce redundancy:
 
-Security: Using ? placeholders to prevent SQL Injection attacks.
+- `Classes`
+- `Species`
+- `Alignments`
+- `Regions`
 
-Relational Logic: Writing explicit JOIN queries to retrieve human-readable names instead of raw IDs.
+These tables should contain immutable or rarely changing data and be referenced via foreign keys.
 
-Business Logic: Implementing item-stacking logic in the InventoryRepository.
+#### Core Entities
+
+Primary domain tables representing the main game data:
+
+- `Characters`
+- `Items`
+- `Quests`
+
+Each table must define:
+
+- A clear primary key  
+- Appropriate data types  
+- Foreign key relationships where applicable  
+
+#### Join Tables
+
+Support **many-to-many relationships** required by the domain model, including:
+
+- Character inventories  
+- Quest history and progression tracking  
+
+Join tables must enforce referential integrity using foreign key constraints.
+
+---
+
+## Phase 2: Connection Logic
+
+**File:** `models/models.py`
+
+You will implement the database access layer that bridges **Python** and **SQLite**, ensuring reliability and consistency across the application lifecycle.
+
+### Responsibilities
+
+#### Database Connection Factory: `get_db()`
+
+The connection factory must:
+
+- Enable relational enforcement using:
+
+```sql
+PRAGMA foreign_keys = ON;
+``
 
 
 # ✅ Common Git Commands (Quick Reference)
