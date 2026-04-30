@@ -35,15 +35,15 @@ class CharacterRepository:
                     c.CharacterName,
                     c.level,
                     cc.ClassID,
-                    cc.ClassName
+                    cc.ClassName,
                     s.SpeciesID,
                     s.SpeciesName,
-                    a.AllignmentID,
-                    a.AllignmentName
+                    a.AlignmentID,
+                    a.AlignmentName
                 FROM Character c
                 JOIN CharacterClass cc ON c.ClassID      = ClassID
                 JOIN Species        s  ON c.SpeciesID    = SpeciesID
-                JOIN Allignment     a  ON c.AllignmentID = a.AllignmentID 
+                JOIN Alignment     a  ON c.AlignmentID = a.AlignmentID 
                 ORDER BY c.CharacterName
             """).fetchall()
         
@@ -56,65 +56,64 @@ class CharacterRepository:
                     c.Level,
                     c.ClassID,
                     c.SpeciesID,
-                    c.AllignmentID,
+                    c.AlignmentID,
                     cc.ClassName,
                     s.SpeciesName,
-                    a.AllignmentName
+                    a.AlignmentName
                 FROM Character c
                 JOIN CharacterClass cc ON c.ClassID      = ClassID
                 JOIN Species        s  ON c.SpeciesID    = SpeciesID
-                JOIN Allignment     a  ON c.AllignmentID = a.AllignmentID 
+                JOIN Alignment     a  ON c.AlignmentID = a.AlignmentID 
                 WHERE c.CharacterID = ?
             """, (character_id,))
         
-        def create(self, data: dict) -> int:
-            """Insert a new character and return the new CharacterID."""
-            with get_db() as conn:
-                cursor = conn.execute("""
-                    INSERT INTO Character (CharacterName, ClassID, SpeciesID, AllignmentID),
+    def create(self, data: dict) -> int:
+        """Insert a new character and return the new CharacterID."""
+        with get_db() as conn:                cursor = conn.execute("""
+                    INSERT INTO Character (CharacterName, ClassID, SpeciesID, AlignmentID),
                     VALUES (?, ?, ?, ?, ?)
                 """, (
                     data["CharacterName"],
                     data["ClassID"],
                     data["SpeciesID"],
-                    data["AllignmentID"],
+                    data["AlignmentID"],
                     data["Level"],
                 ))
-                conn.commit()
-                return cursor.lastrowid
+        conn.commit()
+        return cursor.lastrowid
             
-        def update(self, character_id: int, data: dict) -> None:
-            with get_db() as conn:
-                conn.execute(""" 
+    def update(self, character_id: int, data: dict) -> None:
+        with get_db() as conn:
+            conn.execute(""" 
                     UPDATE Character
                     SET CharacterName = ?,
                     ClassID           = ?,
                     SpeciesID         = ?,
-                    AllignmentID      = ?,
+                    AlignmentID      = ?,
                     Level             = ?, 
                 """, (
                     data["CharacterName"],
                     data["ClassID"],
                     data["SpeciesID"],
-                    data["AllignmentID"],
+                    data["AlignmentID"],
                     data["Level"],
                     character_id,
                 ))
-                conn.commit()
+            conn.commit()
 
-        def delete(self, character_id: int) -> None:
-            with get_db() as conn:
-                conn.execute(
+    def delete(self, character_id: int) -> None:
+        with get_db() as conn:
+            conn.execute(
                     "DELETE FROM Character WHERE CharacterID = ?",
                     (character_id,)
                 )
-                conn.commit()
+            conn.commit()
 
-        def count(self) -> int:
-            with get_db() as conn:
-                return conn.execute(
+    def count(self) -> int:
+        with get_db() as conn:
+            return conn.execute(
                     "SELECT COUNT(*) FROM Character"
-                ).fetchone()[0]
+            ).fetchone()[0]
             
 
 
@@ -144,8 +143,8 @@ class ItemRepository:
             SELECT
                 i.ItemID,
                 i.ItemName,
-                it.ItemTypeID
-                it.TypeNAme,
+                it.ItemTypeID,
+                it.TypeName,
                 r.RarityID,
                 r.RarityName
             From Item I
@@ -188,7 +187,7 @@ class QuestRepository:
                 d.DifficultyID,
                 d.DifficultyName
             FROM QUEST q
-            JOIN Region     r ON q.RegioonID    = r.RegionID
+            JOIN Region     r ON q.RegionID    = r.RegionID
             JOIN Difficulty d ON q.DifficultyID = d.DifficultyID
             ORDER BY q.QuestName
              """).fetchall()
@@ -199,7 +198,7 @@ class QuestRepository:
             SELECT
                 i.QuestID,
                 i.QuestName,
-                it.RegionID
+                it.RegionID,
                 it.RegionNAme,
                 r.DifficultyID,
                 r.DifficultyName
@@ -292,14 +291,13 @@ class InventoryRepository:
 
 # -- CharacterQuest -------------------------------------------------------------------------------
 
-    class CharacterQuestRepository:
+class CharacterQuestRepository:
 
-        def get_for_character(self, character_id: int) -> list:
-            with get_db() as conn:
-                return conn.execute(""" 
-                    SELECT
-                        cq.CharacterQuestID,
-                        cq.CompletionDate,
+    def get_for_character(self, character_id: int) -> list:
+        with get_db() as conn:
+            return conn.execute(""" 
+                SELECT cq.CharacterQuestID,
+                       cq.CompletionDate,
                         q.QuestID,
                         q.QuestName,
                         r.RegionName,
@@ -312,31 +310,30 @@ class InventoryRepository:
                     ORDER BY cq.CompletionDate DESC, q.QuestName    
              """, (character_id)).fetchall()
             
-        def get_by_id(self, cq_id: int):
-            with get_db() as conn:
-                return _fetchone_or_404(
+    def get_by_id(self, cq_id: int):
+        with get_db() as conn:
+            return _fetchone_or_404(
                     conn,
                     "SELECT * FROM CharacterQuest WHERE CharacterQuestID = ?",
                     (cq_id,)
                 )
             
-        def assign(self, character_id: int, quest_id: int) -> int:
-            with get_db() as conn:
-                cursor = conn.execute(""" 
+    def assign(self, character_id: int, quest_id: int) -> int:
+        with get_db() as conn:
+            cursor = conn.execute(""" 
                     INSERT INTO CharacterQuest (CharacterID, QuestID)
                     VALUES (?,?)
-            """, (character_id, quest_id))
-                conn.commit()
-                return cursor.lastrowid
+            """, (character_id, quest_id))            
+            conn.commit()
+            return cursor.lastrowid
         
-        def complete(self, cq_id: int) -> None:
-            with get_db() as conn:
-                conn.execute(""" 
+    def complete(self, cq_id: int) -> None:
+        with get_db() as conn:
+            conn.execute(""" 
                     UPDATE CharacterQuest
                     SET CompletionDate = datetime('now')
-                    WHERE CharacterQuestID = ?
-            """, (cq_id,))
-                conn.commit()
+                    WHERE CharacterQuestID = ?            """, (cq_id,))
+            conn.commit()
 
 
 # -- Lookuo (read-only reference tables) ---------------------------------------------------------------
@@ -356,10 +353,10 @@ class LookupRepository:
                 "SELECT SpeciesID, SpeciesName FROM Species ORDER BY SpeciesName"
             ).fetchall()
         
-    def get_allignments(self) -> list:
+    def get_alignments(self) -> list:
         with get_db() as conn:
             return conn.execute(
-                "SELECT AllignmentID, AllignmentNAme FROM Allignment ORDER BY AllignmentName"
+                "SELECT AlignmentID, AlignmentNAme FROM Alignment ORDER BY AlignmentName"
             ).fetchall()
     
     def get_item_types(self) -> list:
