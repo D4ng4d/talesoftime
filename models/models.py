@@ -29,6 +29,7 @@ def get_db() -> sqlite3.Connection:
     Foreign Key enforcement is enabled on every connection -
     SQLite disables this by default.
     """
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok = True)
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS CharacterClass (
 
 CREATE TABLE IF NOT EXISTS Species (
     SpeciesID  INTEGER PRIMARY KEY AUTOINCREMENT,
-    ClassName VARCHAR(50) NOT NULL UNIQUE,
+    SpeciesName VARCHAR(50) NOT NULL UNIQUE,
     Description TEXT
 );
 
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS Alignment (
 );
 
 CREATE TABLE IF NOT EXISTS ItemType (
-    ItemTyoeID INTEGER PRIMARY KEY AUTOINCREMENT,
+    ItemTypeID INTEGER PRIMARY KEY AUTOINCREMENT,
     TypeName   VARCHAR(50) NOT NULL UNIQUE
 );
 
@@ -89,10 +90,10 @@ CREATE TABLE IF NOT EXISTS Character (
     ClassID       INTEGER NOT NULL,
     SpeciesID     INTEGER NOT NULL,
     AlignmentID   INTEGER NOT NULL,
-    Level         INTEGER NOT NULL DEFUALT 1,
+    Level         INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (ClassID)     REFERENCES CharacterClass(ClassID),
     FOREIGN KEY (SpeciesID)   REFERENCES Species(SpeciesID),
-    FOREIGN KEY (alignmentID) REFERENCES Alignment(AlignmentID)
+    FOREIGN KEY (AlignmentID) REFERENCES Alignment(AlignmentID)
 );
 
 CREATE TABLE IF NOT EXISTS Item (
@@ -100,7 +101,7 @@ CREATE TABLE IF NOT EXISTS Item (
     ItemName VARCHAR(100) NOT NULL,
     ItemTypeID INTEGER NOT NULL,
     RarityID   INTEGER NOT NULL,
-    FOREIGN KEY (ItemTypeID) REFERENCES ItemTyoe(ItemTypeID),
+    FOREIGN KEY (ItemTypeID) REFERENCES ItemType(ItemTypeID),
     FOREIGN KEY (RarityID)   REFERENCES Rarity(RarityID)
 );
 
@@ -110,7 +111,7 @@ CREATE TABLE IF NOT EXISTS Quest (
     RegionID     INTEGER NOT NULL,
     DifficultyID INTEGER NOT NULL,
     FOREIGN KEY (RegionID)    REFERENCES Region(RegionID),
-    FOREIGN KEY (DifficultyID REFERENCES Difficulty(DifficultyID) 
+    FOREIGN KEY (DifficultyID) REFERENCES Difficulty(DifficultyID) 
 );
 
 -- -- Join tables -------------------------------------------------------------------------------
@@ -121,7 +122,7 @@ CREATE TABLE IF NOT EXISTS Inventory (
     ItemID      INTEGER NOT NULL,
     Quantity    INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (CharacterID) REFERENCES Character(CharacterID),
-    FOREIGN KEY (QuestID)     REFERENCES Item(ItemID)
+    FOREIGN KEY (ItemID)     REFERENCES Item(ItemID)
 );
 
 CREATE TABLE IF NOT EXISTS CharacterQuest (
