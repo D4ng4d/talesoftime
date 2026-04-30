@@ -14,7 +14,7 @@ import os
 
 #-- Connection ---------------------------------------------------------------------------------
 
-_HERE   = os.path.dirname(os.path.adspath(__file__))
+_HERE   = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.normpath(os.environ.get("DATABASE_PATH", os.path.join(_HERE, "..", "instance", "tales_of_time.db")))
 
 
@@ -144,4 +144,4 @@ def init_db() -> None:
 
     with get_db() as conn:
         conn.executescript(_SCHEMA)
-        conn.commity()
+        conn.commit()
