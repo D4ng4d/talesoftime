@@ -69,8 +69,9 @@ class CharacterRepository:
         
     def create(self, data: dict) -> int:
         """Insert a new character and return the new CharacterID."""
-        with get_db() as conn:                cursor = conn.execute("""
-                    INSERT INTO Character (CharacterName, ClassID, SpeciesID, AlignmentID),
+        with get_db() as conn:                
+            cursor = conn.execute("""
+                    INSERT INTO Character (CharacterName, ClassID, SpeciesID, AlignmentID, Level)
                     VALUES (?, ?, ?, ?, ?)
                 """, (
                     data["CharacterName"],
@@ -78,19 +79,20 @@ class CharacterRepository:
                     data["SpeciesID"],
                     data["AlignmentID"],
                     data["Level"],
-                ))
-        conn.commit()
-        return cursor.lastrowid
+            ))
+            conn.commit()
+            return cursor.lastrowid
             
     def update(self, character_id: int, data: dict) -> None:
         with get_db() as conn:
             conn.execute(""" 
                     UPDATE Character
-                    SET CharacterName = ?,
-                    ClassID           = ?,
-                    SpeciesID         = ?,
-                    AlignmentID      = ?,
-                    Level             = ?, 
+                    SET CharacterName     = ?,
+                        ClassID           = ?,
+                        SpeciesID         = ?,
+                        AlignmentID       = ?,
+                        Level             = ?
+                    WHERE CharacterID = ? 
                 """, (
                     data["CharacterName"],
                     data["ClassID"],
@@ -107,6 +109,11 @@ class CharacterRepository:
                     "DELETE FROM Character WHERE CharacterID = ?",
                     (character_id,)
                 )
+            conn.execute(
+                "DELETE FROM CharacterQuest WHERE CharacterID = ?",
+                         (character_id,)
+                         )
+            conn.execute("DELETE FROM Character WHERE CharacterID = ?", (character_id,))
             conn.commit()
 
     def count(self) -> int:
@@ -209,17 +216,17 @@ class QuestRepository:
         """, (quest_id,))
 
     def create(self, data: dict) -> int:
-        with get_db as conn:
+        with get_db() as conn:
             cursor = conn.execute("""
-            INSERT INTO Quest (QuestNAme, RegionID, DifficvultyID)
+            INSERT INTO Quest (QuestName, RegionID, DifficultyID)
             VALUES (?, ?, ?)
-             """, (data["QuestName"], data["RegrionID"], data["DifficultyID"]))
+             """, (data["QuestName"], data["RegionID"], data["DifficultyID"]))
             conn.commit()
             return cursor.lastrowid
 
     def delete(self, quest_id: int) -> None:
         with get_db() as conn:
-            conn.execute("DELETE FROM Quest WHERE QuestID = ?", (quest_id))
+            conn.execute("DELETE FROM Quest WHERE QuestID = ?", (quest_id,))
             conn.commit()
 
     def count(self) -> int:
@@ -247,7 +254,7 @@ class InventoryRepository:
                 JOIN Rarity   r  ON i.RarityID    = r.RarityID
                 WHERE inv.CharacterID = ?
                 ORDER BY i.ItemName             
-            """, (character_id)).fetchall()
+            """, (character_id,)).fetchall()
         
     def get_by_id(self, inventory_id: int):
         with get_db() as conn:
@@ -276,7 +283,7 @@ class InventoryRepository:
                conn.execute("""
                     INSERT INTO Inventory (CharacterID, ItemID, Quantity)
                     VALUES (?, ?, ?)
-                """, character_id, item_id, quantity)
+                """, (character_id, item_id, quantity))
                
             conn.commit()
 
@@ -308,7 +315,7 @@ class CharacterQuestRepository:
                     JOIN Difficulty d ON q.DifficultyID = d.DifficultyID 
                     WHERE cq.CharacterID = ?
                     ORDER BY cq.CompletionDate DESC, q.QuestName    
-             """, (character_id)).fetchall()
+             """, (character_id,)).fetchall()
             
     def get_by_id(self, cq_id: int):
         with get_db() as conn:
