@@ -9,152 +9,156 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app import create_app
-from extensions import db
-from models.models import (
-    CharacterClass, Species, Alignment, ItemType,
-    Rarity, Region, Difficulty, Character, Item,
-    Quest, Inventory, CharacterQuest
-)
+from models.models import get_db, init_db
 
 LOOKUP_SEED_DATA = {
-    CharacterClass: [
-        {"ClassName": "Warrior", "Description": "A powerful melee fighter."},
+    "CharacterClass": [
+        {"ClassName": "Warrior",  "Description": "A powerful melee fighter."},
     ],
-    Species: [
+    "Species": [
         {"SpeciesName": "Human"},
     ],
-    Alignment: [
+    "Alignment": [
         {"AlignmentName": "Lawful Good"},
     ],
-    ItemType: [
+    "ItemType": [
         {"TypeName": "Weapon"},
     ],
-    Rarity: [
+    "Rarity": [
         {"RarityName": "Common"},
     ],
-    Region: [
-        {"RegionName": "The Vardant Vale"},
+    "Region": [
+        {"RegionName": "The Verdant Vale"},
     ],
-    Difficulty: [
-        {"DifficultyName": "Novice"}
+    "Difficulty": [
+        {"DifficultyName": "Novice"},
     ],
 }
 
-def seed_lookup_tables():
-    for model, rows in LOOKUP_SEED_DATA.items():
-        if model.query.count() == 0:
+
+def table_count(cursor, table_name):
+    cursor.execute(f"SELECT COUNT(*) AS Total FROM {table_name}")
+    return cursor.fetchone()["Total"]
+
+
+def fetch_lookup_map(cursor, table_name, key_field):
+    cursor.execute(f"SELECT * FROM {table_name}")
+    return {row[key_field]: dict(row) for row in cursor.fetchall()}
+
+
+def seed_lookup_tables(cursor):
+    for table_name, rows in LOOKUP_SEED_DATA.items():
+        if table_count(cursor, table_name) == 0:
             for row in rows:
-                db.session.add(model(**row))
-            print(f"    + Seeded {model.__tablename__}")
+                columns      = ", ".join(row.keys())
+                placeholders = ", ".join(["?"] * len(row))
+                cursor.execute(
+                    f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})",
+                    tuple(row.values())
+                )
+            print(f"  ✔ Seeded {table_name}")
         else:
-            print(f"    - Skipped {model.__tablename__} (already has data)")
-    db.session.commit()
+            print(f"  – Skipped {table_name} (already has data)")
 
-#Lookup Helpers
-classes =  {c.ClassName: c for c in CharacterClass.query.all()}
-species = {s.SpeciesName: s for s in Species.Query.all()}
-alignments = {a.AlignmentName: a for a in Alignment.query.all()}
-item_types = {i.TypeName: i for i in ItemType.query.all()}
-rarities = {r.RaritiyName: r for r in Rarity.query.all()}
-regions = {r.RegionName: r for r in Region.query.all()}
-difficulties = {d.DifficultyName: d for d in Difficulty.query.all()}
 
-#Characters
-character_rows = [
-    {
-        "CharacterName": "Thorin Ironblade",
-        "ClassID": classes["Warrior"].ClassID,
-        "SpeciesID": species["Dwarf"].SpeciesID,
-        "AlignmentID": alignments["Lawful Good"].AlignmentID,
-        "Level": 12,
-    },
-]
+def seed_core_data(cursor):
+    if table_count(cursor, "Character") > 0:
+        print("  – Skipped Character / Item / Quest / Inventory / CharacterQuest (already has data)")
+        return
 
-characters = []
-for row in character_rows:
-    character = Character(**row)
-    db.session.add(character)
-    characters.append(character)
+    classes    = fetch_lookup_map(cursor, "CharacterClass", "ClassName")
+    species    = fetch_lookup_map(cursor, "Species",        "SpeciesName")
+    alignments = fetch_lookup_map(cursor, "Alignment",      "AlignmentName")
+    item_types = fetch_lookup_map(cursor, "ItemType",       "TypeName")
+    rarities   = fetch_lookup_map(cursor, "Rarity",         "RarityName")
+    regions    = fetch_lookup_map(cursor, "Region",         "RegionName")
+    difficulties = fetch_lookup_map(cursor, "Difficulty",   "DifficultyName")
 
-db.session.commit()
-print("  + Seeded Character")
+    # ── Characters ────────────────────────────────────────────────────────────
+    character_rows = [
+        {"CharacterName": "Thorin Ironblade",    "ClassID": classes["Warrior"]["ClassID"],  "SpeciesID": species["Dwarf"]["SpeciesID"],  "AlignmentID": alignments["Lawful Good"]["AlignmentID"],     "Level": 12},
+    ]
 
-character_map = {c.CharacterName: c for c in Character.query.all()}
+    for row in character_rows:
+        cursor.execute("""
+            INSERT INTO Character (CharacterName, ClassID, SpeciesID, AlignmentID, Level)
+            VALUES (?, ?, ?, ?, ?)
+        """, (row["CharacterName"], row["ClassID"], row["SpeciesID"], row["AlignmentID"], row["Level"]))
 
-# Items
-item_rows = [
-    {
-        "Item Name": "Iron Sword0",
-        "ItemTypeID": item_types["Weapon"].ItemTypeID,
-        "RarityID": rarities["Common"].RarityID,
-    },
-]
+    print("  ✔ Seeded Character")
+    character_map = fetch_lookup_map(cursor, "Character", "CharacterName")
 
-for row in item_rows:
-    db.session.add(Item(**row))
+    # ── Items ─────────────────────────────────────────────────────────────────
+    item_rows = [
+        {"ItemName": "Iron Sword",          "ItemTypeID": item_types["Weapon"]["ItemTypeID"],  "RarityID": rarities["Common"]["RarityID"]},]
 
-db.session.commit()
-print("  +  Seeded Item")
+    for row in item_rows:
+        cursor.execute("""
+            INSERT INTO Item (ItemName, ItemTypeID, RarityID)
+            VALUES (?, ?, ?)
+        """, (row["ItemName"], row["ItemTypeID"], row["RarityID"]))
 
-item_map = {i.ItemName: i for i in Item.query.all()}
+    print("  ✔ Seeded Item")
+    item_map = fetch_lookup_map(cursor, "Item", "ItemName")
 
-#Quests
-quest_rows = [
-    {
-        "QuestName": "Defend the Vale",
-        "RegionID": regions["The Vardent Vale"].RegionID,
-        "DifficutyID": difficulties["Journeyman"].DifficultyID,
-    }
-]
+    # ── Quests ────────────────────────────────────────────────────────────────
+    quest_rows = [
+        {"QuestName": "Defend the Vale",       "RegionID": regions["The Verdant Vale"]["RegionID"],        "DifficultyID": difficulties["Journeyman"]["DifficultyID"]},
+    ]
 
-for row in quest_rows:
-    db.session.add(Quest(**row))
+    for row in quest_rows:
+        cursor.execute("""
+            INSERT INTO Quest (QuestName, RegionID, DifficultyID)
+            VALUES (?, ?, ?)
+        """, (row["QuestName"], row["RegionID"], row["DifficultyID"]))
 
-db.session.commit()
-print("  + Seeded Quest")
+    print("  ✔ Seeded Quest")
+    quest_map = fetch_lookup_map(cursor, "Quest", "QuestName")
 
-quest_map = {q.QuestName: q for q in Quest.query.all()}
+    # ── Inventory ─────────────────────────────────────────────────────────────
+    inventory_rows = [
+        {"CharacterID": character_map["Thorin Ironblade"]["CharacterID"],    "ItemID": item_map["Iron Sword"]["ItemID"],           "Quantity": 1},
+    ]
 
-#Inventory
-inventory_rows = [
-    {
-        "CharacterID": character_map["Thorin Ironblade"].CharacterID,
-        "ItemID": item_map["Iron Sword"].ItemID,
-        "Quantity": 1,
-    },
-]
+    for row in inventory_rows:
+        cursor.execute("""
+            INSERT INTO Inventory (CharacterID, ItemID, Quantity)
+            VALUES (?, ?, ?)
+        """, (row["CharacterID"], row["ItemID"], row["Quantity"]))
 
-for row in inventory_rows:
-    db.session.add(Inventory(**row))
+    print("  ✔ Seeded Inventory")
 
-db.session.commit()
-print("  + Seeded Inventory")
+    # ── CharacterQuest ────────────────────────────────────────────────────────
+    character_quest_rows = [
+        {"CharacterID": character_map["Thorin Ironblade"]["CharacterID"],    "QuestID": quest_map["Defend the Vale"]["QuestID"],       "CompletionDate": datetime(2026, 1, 12, 14, 30).isoformat(sep=" ")},
+    ]
 
-#Character Quest
+    for row in character_quest_rows:
+        cursor.execute("""
+            INSERT INTO CharacterQuest (CharacterID, QuestID, CompletionDate)
+            VALUES (?, ?, ?)
+        """, (row["CharacterID"], row["QuestID"], row["CompletionDate"]))
 
-character_quest_rows = [
-    {
-        "CharacterID": character_map["Thorin Ironblade"].CharacterID,
-        "QuestID": quest_map["Defend the Vale"].QuestID,
-        "CompletionDate": datetime(2026, 1, 12, 12, 30),
-    },
-]
-
-for row in character_quest_rows:
-    db.session.add(CharacterQuest(**row))
-
-    db.session.commit()
-    print("  + Seeded CharacterQuest")
+    print("  ✔ Seeded CharacterQuest")
 
 
 def seed():
-    app = create_app()
-    with app.app_context():
-        db.create_all()
-        seed_lookup_tables()
-        seed_core_data()
-        print("\nSeedComplete.")
+    init_db()
+    conn = get_db()          # was: get_connection() - does not exist
+    cursor = conn.cursor()
+
+    try:
+        seed_lookup_tables(cursor)
+        seed_core_data(cursor)
+        conn.commit()
+        print("\nSeed complete.")
+    except Exception as e:
+        conn.rollback()
+        print(f"\nSeed failed: {e}")
+        raise
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
-      seed()
+    seed()

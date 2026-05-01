@@ -41,8 +41,8 @@ class CharacterRepository:
                     a.AlignmentID,
                     a.AlignmentName
                 FROM Character c
-                JOIN CharacterClass cc ON c.ClassID      = ClassID
-                JOIN Species        s  ON c.SpeciesID    = SpeciesID
+                JOIN CharacterClass cc ON c.ClassID      = cc.ClassID
+                JOIN Species        s  ON c.SpeciesID    = s.SpeciesID
                 JOIN Alignment     a  ON c.AlignmentID = a.AlignmentID 
                 ORDER BY c.CharacterName
             """).fetchall()
@@ -61,8 +61,8 @@ class CharacterRepository:
                     s.SpeciesName,
                     a.AlignmentName
                 FROM Character c
-                JOIN CharacterClass cc ON c.ClassID      = ClassID
-                JOIN Species        s  ON c.SpeciesID    = SpeciesID
+                JOIN CharacterClass cc ON c.ClassID      = cc.ClassID
+                JOIN Species        s  ON c.SpeciesID    = s.SpeciesID
                 JOIN Alignment     a  ON c.AlignmentID = a.AlignmentID 
                 WHERE c.CharacterID = ?
             """, (character_id,))
@@ -223,7 +223,7 @@ class QuestRepository:
             conn.commit()
 
     def count(self) -> int:
-        with get_db as conn:
+        with get_db() as conn:
             return conn.execute("SELECT COUNT(*) FROM Quest").fetchone()[0] 
 
 
@@ -284,9 +284,9 @@ class InventoryRepository:
         with get_db() as conn:
             conn.execute(
                 "DELETE FROM Inventory WHERE InventoryID = ?",
-                (inventory_id)
+                (inventory_id,)
             )
-            conn.commit
+            conn.commit()
 
 
 # -- CharacterQuest -------------------------------------------------------------------------------

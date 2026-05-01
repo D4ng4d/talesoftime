@@ -79,7 +79,7 @@ class QuestService:
 
     def get_form_data(self) -> QuestFormViewModel:
         return QuestFormViewModel(
-            regions      = self._lookup.get_regions(),
+            regions      = self._lookup.get_region(),
             difficulties = self._lookup.get_difficulties(),
         )
 
